@@ -11,8 +11,18 @@ import androidx.appcompat.app.AppCompatActivity
 import com.behraz.fastermixer.batch.utils.general.PermissionHelper
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
+import java.lang.IllegalStateException
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), PermissionHelper.Interactions {
+
+
+    private val rootDir by lazy {
+        val rootPath =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        File("$rootPath/a")
+    }
 
     private companion object {
         const val REQ_GO_TO_SETTINGS_PERMISSION = 1223
@@ -40,33 +50,81 @@ class MainActivity : AppCompatActivity(), PermissionHelper.Interactions {
 
     private fun initViews() {
         btnAdd.setOnClickListener {
-            val rootPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
-
-            val rootFile = File("$rootPath/a")
-            if (rootFile.exists()) {
-                rootFile.listFiles()?.forEach {
-                    val index = it.absolutePath.indexOf(".lck", it.absolutePath.length - 5)
-                    if (index == -1) { //if not already locked
-                        it.renameTo(File("${it.absolutePath}.lck"))
-                    }
-                }
-            } else {
-                Toast.makeText(this, "Path not exists", Toast.LENGTH_SHORT).show()
-            }
+            lock(rootDir)
+            //findAllSubDirectories(rootDir)
         }
 
         btnRemove.setOnClickListener {
-            val rootPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
-            val rootFile = File("$rootPath/a")
-            if (rootFile.exists()) {
-                rootFile.listFiles()?.forEach {
-                    val index = it.absolutePath.indexOf(".lck", it.absolutePath.length - 5)
-                    if (index != -1) { //if Locked
-                        it.renameTo(File(it.absolutePath.substring(0, index)))
+            unLock(rootDir)
+        }
+    }
+
+    private fun findAllSubDirectories(rootDir: File) {
+        if (rootDir.isDirectory) {
+            val directories = ArrayList<File>()
+            val files = LinkedList<File>()
+
+            directories.add(rootDir)
+
+            var i = 0
+
+            while (i < directories.size) {
+                directories[i].listFiles()?.forEach { file ->
+                    if (file.isDirectory) {
+                        println("debug:dir:${file.absolutePath}")
+                        directories.add( file)
+                    } else {
+                        files.add(file)
                     }
+                }
+                i++
+            }
+
+
+                println("debug:dir:${directories.size}")
+
+            println("debug:=============================================================")
+            /* files.forEach {
+                 println("debug:file:${it.absolutePath}")
+             }*/
+
+
+        } else {
+            throw IllegalStateException("rootDir should be directory")
+        }
+    }
+
+    private fun lock(rootFile: File) {
+        if (rootFile.exists()) {
+            rootFile.listFiles()?.forEach {
+                val index = it.absolutePath.indexOf(".lck", it.absolutePath.length - 5)
+                if (index == -1) { //if not already locked
+                    it.renameTo(File("${it.absolutePath}.lck"))
+                }
+            }
+        } else {
+            Toast.makeText(this, "Path not exists", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun unLock(rootFile: File) {
+        if (rootFile.exists()) {
+            rootFile.listFiles()?.forEach {
+                val index = it.absolutePath.indexOf(".lck", it.absolutePath.length - 5)
+                if (index != -1) { //if Locked
+                    it.renameTo(File(it.absolutePath.substring(0, index)))
                 }
             }
         }
+    }
+
+    private fun encryptName() {
+        TODO("not yet implemented")
+    }
+
+
+    private fun decryptName() {
+        TODO("not yet implemented")
     }
 
     override fun onRequestPermissionsResult(
@@ -85,7 +143,7 @@ class MainActivity : AppCompatActivity(), PermissionHelper.Interactions {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQ_GO_TO_SETTINGS_PERMISSION) {
-               permissionHelper.checkPermission()
+            permissionHelper.checkPermission()
         }
     }
 
